@@ -1,6 +1,6 @@
 <h1>TIER Blobility microservice</h1>
 
-This microservice gets all the objects of an AWS account's buckets within a given region and lists them on a website.
+This microservice gets all the objects of an AWS account's buckets within a given region and lists them on endpoint */list-objects* of your domain.
 
 ENV VARS that must be set:
 
