@@ -15,7 +15,7 @@ jobs:
             APP_VERSION=$(grep -A1 '<!-- DO NOT REMOVE THIS AUTOMATION MESSAGE - APP VERSION -->' pom.xml | tail -1 | sed -e 's/<version>\(.*\)<\/version>/\1/')
             echo 'export $(echo ${APP_VERSION//[[:blank:]]/})' >> $BASH_ENV
   maven-build-and-test:
-    machine: ubuntu-1604:202007-01
+    machine: true
     steps:
       - checkout
       - run: |
@@ -30,16 +30,15 @@ jobs:
       - run:
           name: Maven build & tests
           command: |
-            set JAVA_HOME=C:\path\to\jdk11
             mvn -B -DskipTests clean package
             mvn test
   docker-build-and-push:
     machine: true
     steps:
       - run:
-            name: "Build image"
-            command: |
-              docker build -t $DOCKER_HUB_USER/$DOCKER_HUB_REPO:${APP_NAME}-${APP_VERSION} .
+          name: "Build image"
+          command: |
+            docker build -t $DOCKER_HUB_USER/$DOCKER_HUB_REPO:${APP_NAME}-${APP_VERSION} .
       - deploy:
           name: Publish application to docker hub
           command: |
