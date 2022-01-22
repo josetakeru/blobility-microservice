@@ -40,17 +40,18 @@ jobs:
             TMP_DIR=$(mktemp -d)
             git config --global user.email "23168163+josetakeru@users.noreply.github.com"
             git config --global user.name "José Takeru"
-            git clone https://$GITHUB_TOKEN@github.com/josetakeru/tier-blobility-microservice.git ${TMP_DIR}
+            git clone https://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@github.com/josetakeru/tier-blobility-microservice.git ${TMP_DIR}
             cd ${TMP_DIR}
-            APP_VERSION=$(grep -A1 "<!-- DO NOT REMOVE THIS AUTOMATION MESSAGE - APP VERSION -->" pom.xml | tail -1 | sed -e "s/<version>\(.*\)<\/version>/\1/")
-            LINE_NUMBER=$(APP_VERSION=$(grep -A1 "<!-- DO NOT REMOVE THIS AUTOMATION MESSAGE - APP VERSION -->" pom.xml | tail -1 | sed -e "s/<version>\(.*\)<\/version>/\1/") | awk -F: '{print $1}')
+            APP_VERSION=$(grep -A1 '<!-- DO NOT REMOVE THIS AUTOMATION MESSAGE - APP VERSION -->' pom.xml | tail -1 | sed -e 's/<version>\(.*\)<\/version>/\1/')
+            LINE_NUMBER=$(grep -A1 -n '<!-- DO NOT REMOVE THIS AUTOMATION MESSAGE - APP VERSION -->' pom.xml | tail -1 | awk -F- '{print $1}')
             MINOR_VERSION=$(echo "${APP_VERSION##*.}")
             NEW_MINOR_VERSION=$((${MINOR_VERSION} + 1))
             NEW_APP_VERSION="${APP_VERSION%.*}.${NEW_MINOR_VERSION}"
+            NEW_APP_VERSION=$(echo ${NEW_APP_VERSION} | tr -d ' ')
             printf '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
             echo "App version will be updated to ${NEW_APP_VERSION}"
             printf '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
-            sed "${LINE_NUMBER}s/.*/app_version=${NEW_APP_VERSION}/" pom.xml > pom_tmp.xml
+            sed "${LINE_NUMBER}s/.*/<version>${NEW_APP_VERSION}<\/version>/" pom.xml > pom_tmp.xml
             mv pom_tmp.xml pom.xml  
             git add pom.xml
             git commit -m "CICD pipeline: Update app version"
