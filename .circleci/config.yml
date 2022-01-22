@@ -1,7 +1,7 @@
 version: 2.1
 
 jobs:
-  maven-build-and-test:
+  maven-build-and-docker-build-push:
     machine: true
     steps:
       - checkout
@@ -19,14 +19,8 @@ jobs:
           command: |
             mvn -B -DskipTests clean package
             mvn test
-  docker-build-and-push:
-    machine: true
-    steps:
-      - checkout
-      - run: |
-          if [[ $(git log -1 --pretty=%B) == "CICD pipeline: Update app version" ]]; then circleci-agent step halt; fi
       - run:
-          name: "Set env variables"
+          name: "Docker build and push"
           command: |
             set -x
             export APP_NAME_AUX=$(grep -A1 "<!-- DO NOT REMOVE THIS AUTOMATION MESSAGE - APP NAME -->" pom.xml | tail -1 | sed -e "s/<name>\(.*\)<\/name>/\1/")
@@ -40,8 +34,4 @@ jobs:
 workflows:
   set-environment-variables:
     jobs:
-      #- maven-build-and-test
-      - docker-build-and-push
-          #requires:
-          #  - maven-build-and-test
-
+      - maven-build-and-docker-build-push
