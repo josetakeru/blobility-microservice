@@ -22,6 +22,9 @@ jobs:
   docker-build-and-push:
     machine: true
     steps:
+      - checkout
+      - run: |
+          if [[ $(git log -1 --pretty=%B) == "CICD pipeline: Update app version" ]]; then circleci-agent step halt; fi
       - run:
           name: "Set env variables"
           command: |
@@ -42,10 +45,7 @@ jobs:
 workflows:
   set-environment-variables:
     jobs:
-      - set-environment-variables
-      - maven-build-and-test:
-          requires:
-            - set-environment-variables
+      - maven-build-and-test
       - docker-build-and-push:
           requires:
             - maven-build-and-test
