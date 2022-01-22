@@ -1,0 +1,52 @@
+version: 2.1
+
+jobs:
+  set-environment-variables:
+    machine: true
+    steps:
+      - checkout
+      - run: |
+          if [[ $(git log -1 --pretty=%B) == "CICD pipeline: Update app version" ]]; then circleci-agent step halt; fi
+      - run:
+          name: "Set env variables"
+          command: |
+            APP_NAME=$(grep -A1 '<!-- DO NOT REMOVE THIS AUTOMATION MESSAGE - APP NAME -->' pom.xml | tail -1 | sed -e 's/<name>\(.*\)<\/name>/\1/')
+            echo 'export $(echo ${APP_NAME//[[:blank:]]/})' >> $BASH_ENV
+            APP_VERSION=$(grep -A1 '<!-- DO NOT REMOVE THIS AUTOMATION MESSAGE - APP VERSION -->' pom.xml | tail -1 | sed -e 's/<version>\(.*\)<\/version>/\1/')
+            echo 'export $(echo ${APP_VERSION//[[:blank:]]/})' >> $BASH_ENV
+  maven-build-and-test:
+    machine: true
+    steps:
+      - checkout
+      - run: |
+          if [[ $(git log -1 --pretty=%B) == "CICD pipeline: Update app version" ]]; then circleci-agent step halt; fi
+      - run:
+          name: Maven build
+          command: mvn -B -DskipTests clean package
+      - run:
+          name: Maven tests
+          command: mvn test
+  docker-build-and-push:
+    machine: true
+    steps:
+      - run:
+            name: "Build image"
+            command: |
+              docker build -t $DOCKER_HUB_USER/$DOCKER_HUB_REPO:${APP_NAME}-${APP_VERSION} .
+      - deploy:
+          name: Publish application to docker hub
+          command: |
+            docker login -u $DOCKER_HUB_USER -p $DOCKER_HUB_PASSWORD
+            docker push $DOCKER_HUB_USER/$DOCKER_HUB_REPO:${APP_NAME}-${APP_VERSION}
+
+workflows:
+  set-environment-variables:
+    jobs:
+      - set-environment-variables
+      - maven-build-and-test:
+          requires:
+            - set-environment-variables
+      - docker-build-and-push:
+          requires:
+            - maven-build-and-test
+
