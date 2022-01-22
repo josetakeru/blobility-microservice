@@ -15,11 +15,18 @@ jobs:
             APP_VERSION=$(grep -A1 '<!-- DO NOT REMOVE THIS AUTOMATION MESSAGE - APP VERSION -->' pom.xml | tail -1 | sed -e 's/<version>\(.*\)<\/version>/\1/')
             echo 'export $(echo ${APP_VERSION//[[:blank:]]/})' >> $BASH_ENV
   maven-build-and-test:
-    machine: true
+    machine: ubuntu-1604:202007-01
     steps:
       - checkout
       - run: |
           if [[ $(git log -1 --pretty=%B) == "CICD pipeline: Update app version" ]]; then circleci-agent step halt; fi
+      - run:
+          name: Install OpenJDK 11
+          command: |
+            sudo apt-get update && sudo apt-get install openjdk-11-jdk
+            sudo update-alternatives --set java /usr/lib/jvm/java-11-openjdk-amd64/bin/java
+            sudo update-alternatives --set javac /usr/lib/jvm/java-11-openjdk-amd64/bin/javac
+            java -version
       - run:
           name: Maven build & tests
           command: |
