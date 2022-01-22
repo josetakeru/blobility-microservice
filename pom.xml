@@ -11,7 +11,7 @@
 	<groupId>tb</groupId>
 	<artifactId>tier-blobility-microservice</artifactId>
 	<!-- DO NOT REMOVE THIS AUTOMATION MESSAGE - APP VERSION -->
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.0.1</version>
 	<!-- DO NOT REMOVE THIS AUTOMATION MESSAGE - APP NAME -->
 	<name>tier-blobility-microservice</name>
 	<description>Microservice that lists AWS S3 objects</description>
