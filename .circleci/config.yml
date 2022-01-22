@@ -40,7 +40,7 @@ jobs:
             TMP_DIR=$(mktemp -d)
             git config --global user.email "23168163+josetakeru@users.noreply.github.com"
             git config --global user.name "José Takeru"
-            git clone https://$GITHUB_TOKEN@github.com/josetakeru/tier-blobility-demo-service.git ${TMP_DIR}
+            git clone https://$GITHUB_TOKEN@github.com/josetakeru/tier-blobility-microservice.git ${TMP_DIR}
             cd ${TMP_DIR}
             APP_VERSION=$(grep -A1 "<!-- DO NOT REMOVE THIS AUTOMATION MESSAGE - APP VERSION -->" pom.xml | tail -1 | sed -e "s/<version>\(.*\)<\/version>/\1/")
             LINE_NUMBER=$(APP_VERSION=$(grep -A1 "<!-- DO NOT REMOVE THIS AUTOMATION MESSAGE - APP VERSION -->" pom.xml | tail -1 | sed -e "s/<version>\(.*\)<\/version>/\1/") | awk -F: '{print $1}')
