@@ -11,9 +11,9 @@ jobs:
           name: "Set env variables"
           command: |
             APP_NAME=$(grep -A1 '<!-- DO NOT REMOVE THIS AUTOMATION MESSAGE - APP NAME -->' pom.xml | tail -1 | sed -e 's/<name>\(.*\)<\/name>/\1/')
-            echo 'export $(echo ${APP_NAME//[[:blank:]]/})' >> $BASH_ENV
+            echo 'export APP_NAME=$(echo ${APP_NAME//[[:blank:]]/})' >> $BASH_ENV
             APP_VERSION=$(grep -A1 '<!-- DO NOT REMOVE THIS AUTOMATION MESSAGE - APP VERSION -->' pom.xml | tail -1 | sed -e 's/<version>\(.*\)<\/version>/\1/')
-            echo 'export $(echo ${APP_VERSION//[[:blank:]]/})' >> $BASH_ENV
+            echo 'export APP_VERSION=$(echo ${APP_VERSION//[[:blank:]]/})' >> $BASH_ENV
   maven-build-and-test:
     machine: true
     steps:
