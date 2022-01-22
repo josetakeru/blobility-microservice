@@ -33,7 +33,9 @@ jobs:
             echo 'export APP_NAME=$(echo ${APP_NAME_AUX//[[:blank:]]/})' >> $BASH_ENV
             echo 'export APP_VERSION_AUX=$(grep -A1 "<!-- DO NOT REMOVE THIS AUTOMATION MESSAGE - APP VERSION -->" pom.xml | tail -1 | sed -e "s/<version>\(.*\)<\/version>/\1/")' >> $BASH_ENV
             echo 'export APP_VERSION=$(echo ${APP_VERSION_AUX//[[:blank:]]/})' >> $BASH_ENV
+            echo ${APP_VERSION_AUX}
             echo ${APP_VERSION}
+            echo ${APP_NAME_AUX}
             echo ${APP_NAME}
       - run:
           name: "Build image"
