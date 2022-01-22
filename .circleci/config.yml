@@ -21,11 +21,11 @@ jobs:
       - run: |
           if [[ $(git log -1 --pretty=%B) == "CICD pipeline: Update app version" ]]; then circleci-agent step halt; fi
       - run:
-          name: Maven build
-          command: mvn -B -DskipTests clean package
-      - run:
-          name: Maven tests
-          command: mvn test
+          name: Maven build & tests
+          command: |
+            set JAVA_HOME=C:\path\to\jdk11
+            mvn -B -DskipTests clean package
+            mvn test
   docker-build-and-push:
     machine: true
     steps:
