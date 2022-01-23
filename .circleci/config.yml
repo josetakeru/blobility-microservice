@@ -90,7 +90,7 @@ jobs:
             git config --global user.name "José Takeru"
             git clone https://$GITHUB_TOKEN@github.com/josetakeru/tier-blobility-charts.git ${TMP_DIR}
             cd ${TMP_DIR}
-            helm upgrade ${APP_NAME} . --set secret.aws_access_key_id=$AWS_ACCESS_KEY_ID --set secret.aws_secret_access_key=$AWS_SECRET_ACCESS_KEY --set secret.dockerUsername=$DOCKER_HUB_USER --set secret.dockerPassword=$DOCKER_HUB_PASSWORD
+            helm upgrade ${APP_NAME} . --install --set secret.aws_access_key_id=$AWS_ACCESS_KEY_ID --set secret.aws_secret_access_key=$AWS_SECRET_ACCESS_KEY --set secret.dockerUsername=$DOCKER_HUB_USER --set secret.dockerPassword=$DOCKER_HUB_PASSWORD
 
 workflows:
   set-environment-variables:
