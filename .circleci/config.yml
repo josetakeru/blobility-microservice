@@ -60,7 +60,7 @@ jobs:
             git add pom.xml
             git commit -m "CICD pipeline: Update app version"
             git push origin master
-            rm -rf cd ${TMP_DIR}
+            rm -rf ${TMP_DIR}
   helm_install:
     docker:
       - image: google/cloud-sdk
@@ -93,20 +93,19 @@ jobs:
             git clone https://$GITHUB_TOKEN@github.com/josetakeru/tier-blobility-charts.git ${TMP_DIR}
             cd ${TMP_DIR}
             printf '>>>>>>>>>> Installing microservice\n'
-            helm upgrade ${APP_NAME} . --install --set secret.aws_access_key_id=$AWS_ACCESS_KEY_ID --set secret.aws_secret_access_key=$AWS_SECRET_ACCESS_KEY --set image.tag=${APP_VERSION} --set secret.dockerUsername=$DOCKER_HUB_USER --set secret.dockerPassword=$DOCKER_HUB_PASSWORD
+            helm upgrade ${APP_NAME} . --install --atomic --set secret.aws_access_key_id=$AWS_ACCESS_KEY_ID --set secret.aws_secret_access_key=$AWS_SECRET_ACCESS_KEY --set image.tag=${APP_VERSION} --set secret.dockerUsername=$DOCKER_HUB_USER --set secret.dockerPassword=$DOCKER_HUB_PASSWORD
             printf '>>>>>>>>>> Updating tag version in values file\n'
             LINE_NUMBER=$(grep -A1 -n '# DO NOT REMOVE THIS LINE: IT IS HERE FOR AUTOMATION PURPOSES' values.yaml | tail -1 | awk -F- '{print $1}')
             MINOR_VERSION=$(echo "${APP_VERSION##*.}")
             NEW_MINOR_VERSION=$((${MINOR_VERSION} + 1))
             NEW_APP_VERSION="${APP_VERSION%.*}.${NEW_MINOR_VERSION}"
             NEW_APP_VERSION=$(echo ${NEW_APP_VERSION} | tr -d ' ')
-            sed "${LINE_NUMBER}s/.*/  tag: \"${NEW_APP_VERSION}\"" values.yaml > values_tmp.yaml
+            sed "${LINE_NUMBER}s/.*/  tag: \"${NEW_APP_VERSION}\"/" values.yaml > values_tmp.yaml
             mv values_tmp.yaml values.yaml
             git add values.yaml
             git commit -m "CICD pipeline: Update tag version"
             git push origin master
             rm -rf cd ${TMP_DIR}
-
 workflows:
   set-environment-variables:
     jobs:
