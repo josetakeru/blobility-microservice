@@ -73,8 +73,7 @@ jobs:
             apt-get install -qq -y gettext curl apt-transport-https 
             curl https://baltocdn.com/helm/signing.asc | sudo apt-key add -
             echo "deb https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
-            sudo apt-get update
-            sudo apt-get install helm -y
+            apt-get update && apt-get install helm -y
             printf '>>>>>>>>>> Setting GCP environment\n'
             echo $GCP_CREDENTIALS > ${HOME}/gcloud-service-key.json
             gcloud auth activate-service-account --key-file=${HOME}/gcloud-service-key.json
@@ -92,8 +91,6 @@ jobs:
             git clone https://$GITHUB_TOKEN@github.com/josetakeru/tier-blobility-charts.git ${TMP_DIR}
             cd ${TMP_DIR}
             helm upgrade ${APP_NAME} . --set secret.aws_access_key_id=$AWS_ACCESS_KEY_ID --set secret.aws_secret_access_key=$AWS_SECRET_ACCESS_KEY --set secret.dockerUsername=$DOCKER_HUB_USER --set secret.dockerPassword=$DOCKER_HUB_PASSWORD
-
-
 
 workflows:
   set-environment-variables:
