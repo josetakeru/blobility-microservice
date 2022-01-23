@@ -1,0 +1,119 @@
+version: 2.1
+
+jobs:
+  maven-build-and-docker-build-push:
+    machine: true
+    steps:
+      - checkout
+      - run:
+          name: Check commit
+          command: |
+            printf '>>>>>>>>>> Checking commit message\n'
+            if [[ $(git log -1 --pretty=%B) == "CICD pipeline: Update app version" ]]; then '>>>>>>>>>> CICD commit, cancelling...\n' && circleci-agent step halt; fi
+      - run:
+          name: Install OpenJDK 11
+          command: |
+            printf '>>>>>>>>>> Installing required Java version\n'
+            sudo apt-get update && sudo apt-get install openjdk-11-jdk
+            sudo update-alternatives --set java /usr/lib/jvm/java-11-openjdk-amd64/bin/java
+            sudo update-alternatives --set javac /usr/lib/jvm/java-11-openjdk-amd64/bin/javac
+            java -version
+      - run:
+          name: Maven build & tests
+          command: |
+            printf '>>>>>>>>>> Maven build and test\n'
+            mvn -B -DskipTests clean package
+            mvn test
+      - run:
+          name: "Docker build and push"
+          command: |
+            printf '>>>>>>>>>> Docker build and push\n'
+            APP_NAME=$(grep -A1 "<!-- DO NOT REMOVE THIS AUTOMATION MESSAGE - APP NAME -->" pom.xml | tail -1 | sed -e "s/<name>\(.*\)<\/name>/\1/")
+            export APP_NAME=$(echo ${APP_NAME//[[:blank:]]/})
+            APP_VERSION=$(grep -A1 "<!-- DO NOT REMOVE THIS AUTOMATION MESSAGE - APP VERSION -->" pom.xml | tail -1 | sed -e "s/<version>\(.*\)<\/version>/\1/")
+            export APP_VERSION=$(echo ${APP_VERSION//[[:blank:]]/})
+            docker build -t $DOCKER_HUB_USER/$APP_NAME:$APP_VERSION .
+            docker login -u $DOCKER_HUB_USER -p $DOCKER_HUB_PASSWORD
+            docker push $DOCKER_HUB_USER/$APP_NAME:$APP_VERSION
+  update-app-version:
+    machine: true
+    steps:
+      - checkout
+      - run:
+          name: "Update pom.xml"
+          command: |
+            printf '>>>>>>>>>> Cloning microservice repository\n'
+            TMP_DIR=$(mktemp -d)
+            git config --global user.email "23168163+josetakeru@users.noreply.github.com"
+            git config --global user.name "José Takeru"
+            git clone https://$GITHUB_TOKEN@github.com/josetakeru/tier-blobility-microservice.git ${TMP_DIR}
+            cd ${TMP_DIR}
+            APP_VERSION=$(grep -A1 '<!-- DO NOT REMOVE THIS AUTOMATION MESSAGE - APP VERSION -->' pom.xml | tail -1 | sed -e 's/<version>\(.*\)<\/version>/\1/')
+            LINE_NUMBER=$(grep -A1 -n '<!-- DO NOT REMOVE THIS AUTOMATION MESSAGE - APP VERSION -->' pom.xml | tail -1 | awk -F- '{print $1}')
+            MINOR_VERSION=$(echo "${APP_VERSION##*.}")
+            NEW_MINOR_VERSION=$((${MINOR_VERSION} + 1))
+            NEW_APP_VERSION="${APP_VERSION%.*}.${NEW_MINOR_VERSION}"
+            NEW_APP_VERSION=$(echo ${NEW_APP_VERSION} | tr -d ' ')
+            printf '>>>>>>>>>> Updating pom.xml to version ${NEW_APP_VERSION}\n'
+            sed "${LINE_NUMBER}s/.*/<version>${NEW_APP_VERSION}<\/version>/" pom.xml > pom_tmp.xml
+            mv pom_tmp.xml pom.xml  
+            git add pom.xml
+            git commit -m "CICD pipeline: Update app version"
+            git push origin master
+            rm -rf ${TMP_DIR}
+  helm_install:
+    docker:
+      - image: google/cloud-sdk
+    steps:
+      - checkout
+      - run: 
+          name: Set environment
+          command: |
+            printf '>>>>>>>>>> Installing required packages\n'
+            apt-get install -qq -y gettext curl apt-transport-https 
+            curl https://baltocdn.com/helm/signing.asc | apt-key add -
+            echo "deb https://baltocdn.com/helm/stable/debian/ all main" | tee /etc/apt/sources.list.d/helm-stable-debian.list
+            apt-get update && apt-get install helm -y
+            printf '>>>>>>>>>> Setting GCP environment\n'
+            echo $GCP_CREDENTIALS > ${HOME}/gcloud-service-key.json
+            gcloud auth activate-service-account --key-file=${HOME}/gcloud-service-key.json
+            gcloud --quiet config set project $GCP_PROJECT_NAME
+            gcloud --quiet config set compute/zone $GCP_DEFAULT_ZONE
+            gcloud --quiet container clusters get-credentials $GCP_CLUSTER_NAME
+      - run:
+          name: Helm install
+          command: |
+            APP_NAME=$(grep -A1 "<!-- DO NOT REMOVE THIS AUTOMATION MESSAGE - APP NAME -->" pom.xml | tail -1 | sed -e "s/<name>\(.*\)<\/name>/\1/")
+            export APP_NAME=$(echo ${APP_NAME//[[:blank:]]/})
+            APP_VERSION=$(grep -A1 "<!-- DO NOT REMOVE THIS AUTOMATION MESSAGE - APP VERSION -->" pom.xml | tail -1 | sed -e "s/<version>\(.*\)<\/version>/\1/")
+            export APP_VERSION=$(echo ${APP_VERSION//[[:blank:]]/})
+            TMP_DIR=$(mktemp -d)
+            git config --global user.email "23168163+josetakeru@users.noreply.github.com"
+            git config --global user.name "José Takeru"
+            git clone https://$GITHUB_TOKEN@github.com/josetakeru/tier-blobility-charts.git ${TMP_DIR}
+            cd ${TMP_DIR}
+            printf '>>>>>>>>>> Installing microservice\n'
+            helm upgrade ${APP_NAME} . --install --atomic --set secret.aws_access_key_id=$AWS_ACCESS_KEY_ID --set secret.aws_secret_access_key=$AWS_SECRET_ACCESS_KEY --set image.tag=${APP_VERSION} --set secret.dockerUsername=$DOCKER_HUB_USER --set secret.dockerPassword=$DOCKER_HUB_PASSWORD
+            printf '>>>>>>>>>> Updating tag version in values file\n'
+            LINE_NUMBER=$(grep -A1 -n '# DO NOT REMOVE THIS LINE: IT IS HERE FOR AUTOMATION PURPOSES' values.yaml | tail -1 | awk -F- '{print $1}')
+            MINOR_VERSION=$(echo "${APP_VERSION##*.}")
+            NEW_MINOR_VERSION=$((${MINOR_VERSION} + 1))
+            NEW_APP_VERSION="${APP_VERSION%.*}.${NEW_MINOR_VERSION}"
+            NEW_APP_VERSION=$(echo ${NEW_APP_VERSION} | tr -d ' ')
+            sed "${LINE_NUMBER}s/.*/  tag: \"${NEW_APP_VERSION}\"/" values.yaml > values_tmp.yaml
+            mv values_tmp.yaml values.yaml
+            git add values.yaml
+            git commit -m "CICD pipeline: Update tag version"
+            git push origin master
+            rm -rf cd ${TMP_DIR}
+workflows:
+  set-environment-variables:
+    jobs:
+      - maven-build-and-docker-build-push
+      - update-app-version:
+          requires:
+            - maven-build-and-docker-build-push
+      - helm_install:
+          requires:
+            - update-app-version
+    
