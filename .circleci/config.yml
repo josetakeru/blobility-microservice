@@ -85,12 +85,27 @@ jobs:
           command: |
             APP_NAME=$(grep -A1 "<!-- DO NOT REMOVE THIS AUTOMATION MESSAGE - APP NAME -->" pom.xml | tail -1 | sed -e "s/<name>\(.*\)<\/name>/\1/")
             export APP_NAME=$(echo ${APP_NAME//[[:blank:]]/})
+            APP_VERSION=$(grep -A1 "<!-- DO NOT REMOVE THIS AUTOMATION MESSAGE - APP VERSION -->" pom.xml | tail -1 | sed -e "s/<version>\(.*\)<\/version>/\1/")
+            export APP_VERSION=$(echo ${APP_VERSION//[[:blank:]]/})
             TMP_DIR=$(mktemp -d)
             git config --global user.email "23168163+josetakeru@users.noreply.github.com"
             git config --global user.name "José Takeru"
             git clone https://$GITHUB_TOKEN@github.com/josetakeru/tier-blobility-charts.git ${TMP_DIR}
             cd ${TMP_DIR}
-            helm upgrade ${APP_NAME} . --install --set secret.aws_access_key_id=$AWS_ACCESS_KEY_ID --set secret.aws_secret_access_key=$AWS_SECRET_ACCESS_KEY --set secret.dockerUsername=$DOCKER_HUB_USER --set secret.dockerPassword=$DOCKER_HUB_PASSWORD
+            printf '>>>>>>>>>> Installing microservice\n'
+            helm upgrade ${APP_NAME} . --install --set secret.aws_access_key_id=$AWS_ACCESS_KEY_ID --set secret.aws_secret_access_key=$AWS_SECRET_ACCESS_KEY --set image.tag=${APP_VERSION} --set secret.dockerUsername=$DOCKER_HUB_USER --set secret.dockerPassword=$DOCKER_HUB_PASSWORD
+            printf '>>>>>>>>>> Updating tag version in values file\n'
+            LINE_NUMBER=$(grep -A1 -n '# DO NOT REMOVE THIS LINE: IT IS HERE FOR AUTOMATION PURPOSES' values.yaml | tail -1 | awk -F- '{print $1}')
+            MINOR_VERSION=$(echo "${APP_VERSION##*.}")
+            NEW_MINOR_VERSION=$((${MINOR_VERSION} + 1))
+            NEW_APP_VERSION="${APP_VERSION%.*}.${NEW_MINOR_VERSION}"
+            NEW_APP_VERSION=$(echo ${NEW_APP_VERSION} | tr -d ' ')
+            sed "${LINE_NUMBER}s/.*/  tag: \"${NEW_APP_VERSION}\"" values.yaml > values_tmp.yaml
+            mv values_tmp.yaml values.yaml
+            git add values.yaml
+            git commit -m "CICD pipeline: Update tag version"
+            git push origin master
+            rm -rf cd ${TMP_DIR}
 
 workflows:
   set-environment-variables:
