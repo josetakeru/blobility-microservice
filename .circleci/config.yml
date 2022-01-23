@@ -109,8 +109,11 @@ jobs:
 workflows:
   set-environment-variables:
     jobs:
-      - helm_install
-      #- maven-build-and-docker-build-push
-      #- update-app-version:
-      #    requires:
-      #      - maven-build-and-docker-build-push
+      - maven-build-and-docker-build-push
+      - update-app-version:
+          requires:
+            - maven-build-and-docker-build-push
+      - helm_install:
+          requires:
+            - update-app-version
+    
